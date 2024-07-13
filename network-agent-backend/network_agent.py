@@ -131,6 +131,7 @@ def collect_system_data():
         data['memory_info'] = psutil.virtual_memory()._asdict()
         data['disk_usage'] = psutil.disk_usage('/')._asdict()
         data['network_info'] = psutil.net_io_counters()._asdict()
+        data['load_avg'] = psutil.getloadavg()
         data['connections'] = [conn._asdict() for conn in psutil.net_connections()]
     except Exception as e:
         logging.error(f"Error collecting system data: {e}")

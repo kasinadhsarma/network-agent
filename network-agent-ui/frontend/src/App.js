@@ -16,7 +16,9 @@ function App() {
   const [systemData, setSystemData] = useState({
     cpu: [],
     memory: [],
-    network: []
+    network: [],
+    disk: [],
+    load: []
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,9 +43,11 @@ function App() {
         console.log('Fetched data:', response.data); // Log the fetched data
         setSystemData(prevData => {
           const newData = {
-            cpu: limitDataPoints([...prevData.cpu, { time: formatTime(), usage: response.data.data.cpu_usage }]),
-            memory: limitDataPoints([...prevData.memory, { time: formatTime(), usage: response.data.data.memory_info.used }]),
-            network: limitDataPoints([...prevData.network, { time: formatTime(), traffic: calculateNetworkTraffic(response.data.data) }])
+            cpu: response.data.data.cpu_usage !== undefined ? limitDataPoints([...prevData.cpu, { time: formatTime(), usage: response.data.data.cpu_usage }]) : prevData.cpu,
+            memory: response.data.data.memory_info && response.data.data.memory_info.used !== undefined ? limitDataPoints([...prevData.memory, { time: formatTime(), usage: response.data.data.memory_info.used }]) : prevData.memory,
+            network: response.data.data.network_info ? limitDataPoints([...prevData.network, { time: formatTime(), traffic: calculateNetworkTraffic(response.data.data) }]) : prevData.network,
+            disk: response.data.data.disk_usage && response.data.data.disk_usage.used !== undefined ? limitDataPoints([...prevData.disk, { time: formatTime(), usage: response.data.data.disk_usage.used }]) : prevData.disk,
+            load: response.data.data.load_avg && response.data.data.load_avg.length >= 3 ? limitDataPoints([...prevData.load, { time: formatTime(), load1: response.data.data.load_avg[0], load5: response.data.data.load_avg[1], load15: response.data.data.load_avg[2] }]) : prevData.load
           };
           console.log('Processed data:', newData); // Log the processed data
           return newData;
@@ -111,6 +115,34 @@ function App() {
                     <Tooltip />
                     <Legend />
                     <Line type="monotone" dataKey="traffic" stroke="#ffc658" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="chart-container">
+                <Text fontSize="xl" fontWeight="bold">Disk Usage</Text>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={systemData.disk}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="time" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="usage" stroke="#ff7300" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="chart-container">
+                <Text fontSize="xl" fontWeight="bold">System Load</Text>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={systemData.load}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="time" />
+                    <YAxis label={{ value: 'Load Average', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip formatter={(value, name) => [`${value}`, `${name} (1, 5, 15 min)`]} />
+                    <Legend verticalAlign="top" height={36} />
+                    <Line type="monotone" dataKey="load1" stroke="#387908" name="1 min" />
+                    <Line type="monotone" dataKey="load5" stroke="#ff7300" name="5 min" />
+                    <Line type="monotone" dataKey="load15" stroke="#8884d8" name="15 min" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
